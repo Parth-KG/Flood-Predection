@@ -1,7 +1,3 @@
-"""
-config.py — central place for all constants and column definitions.
-"""
-
 import numpy as np
 import tensorflow as tf
 
