@@ -1,8 +1,3 @@
-"""
-evaluation.py — metrics summary, predicted-vs-observed, residual,
-                and metric comparison bar charts.
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 
