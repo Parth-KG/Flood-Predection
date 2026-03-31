@@ -1,10 +1,3 @@
-"""
-main.py — orchestrates the full flood damage prediction pipeline.
-
-Usage:
-    python main.py
-"""
-
 import warnings
 warnings.filterwarnings("ignore")
 
