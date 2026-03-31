@@ -1,7 +1,3 @@
-"""
-preprocessing.py — data loading, cleaning, encoding, train/test split, scaling.
-"""
-
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
