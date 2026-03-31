@@ -1,8 +1,3 @@
-"""
-models.py — training for all five models:
-            Linear Regression, Random Forest, XGBoost, SVR, DNN.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 
