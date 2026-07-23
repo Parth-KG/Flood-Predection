@@ -142,7 +142,7 @@ def train_dnn(
         Dense(1, activation="linear"),
     ])
     model.compile(optimizer=Adam(learning_rate=0.001), loss="mse", metrics=["mae"])
-     if verbose:
+    if verbose:
         model.summary()
 
     history = model.fit(
