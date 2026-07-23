@@ -5,14 +5,18 @@ from config import MODEL_COLORS
 
 
 def build_summary(results: dict) -> pd.DataFrame:
-    """Return a DataFrame with RMSE / MAE / R2 for each model, sorted by RMSE."""
-    summary = pd.DataFrame({
-        "Model": list(results.keys()),
-        "RMSE":  [results[m]["rmse"] for m in results],
-        "MAE":   [results[m]["mae"]  for m in results],
-        "R2":    [results[m]["r2"]   for m in results],
-    }).sort_values("RMSE").reset_index(drop=True)
+    """Return a DataFrame with RMSE / MAE / R2 per model, plus std where available."""
+    rows = []
+    for m, r in results.items():
+        row = {"Model": m, "RMSE": r["rmse"], "MAE": r["mae"], "R2": r["r2"]}
+        for k in ("rmse_std", "mae_std", "r2_std"):
+            if k in r:
+                row[k.upper()] = r[k]
+        if "n_seeds" in r:
+            row["n_seeds"] = r["n_seeds"]
+        rows.append(row)
 
+    summary = pd.DataFrame(rows).sort_values("RMSE").reset_index(drop=True)
     print("\nResults:")
     print(summary.to_string(index=False))
     return summary
@@ -47,7 +51,7 @@ def plot_predicted_vs_observed(
     axes[-1].set_visible(False)
     plt.suptitle("Predicted vs Observed", fontsize=14)
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
+    plt.savefig(save_path, dpi=300)
     plt.close()
     print(f"Saved: {save_path}")
 
@@ -61,10 +65,7 @@ def plot_residuals(
 
     for i, (name, res) in enumerate(results.items()):
         ax    = axes[i]
-        resid = res["preds"] - res["preds"]   # placeholder — filled below
-        # use actual residuals: observed - predicted (passed via results)
-        # residuals are computed here so evaluation.py stays self-contained
-        resid = res.get("residuals", res["preds"])   # fallback if key missing
+        resid = res["residuals"]
         ax.scatter(res["preds"], resid, alpha=0.45, s=18,
                    color=MODEL_COLORS.get(name, "purple"), edgecolors="none")
         ax.axhline(0, color="black", linewidth=1.2, linestyle="--")
@@ -75,7 +76,7 @@ def plot_residuals(
     axes[-1].set_visible(False)
     plt.suptitle("Residual Plots", fontsize=14)
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
+    plt.savefig(save_path, dpi=300)
     plt.close()
     print(f"Saved: {save_path}")
 
@@ -100,7 +101,7 @@ def plot_metric_comparison(
 
     plt.suptitle("Model Comparison")
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
+    plt.savefig(save_path, dpi=300)
     plt.close()
     print(f"Saved: {save_path}")
 
