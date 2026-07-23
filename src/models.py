@@ -15,7 +15,7 @@ from tensorflow.keras.layers import Dense, Dropout, BatchNormalization  # type: 
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau  # type: ignore
 from tensorflow.keras.optimizers import Adam            # type: ignore
 
-from config import RANDOM_SEED
+from config import RANDOM_SEED,  DNN_SEEDS
 
 # ---- helpers ----------------------------------------------------------------
 
