@@ -5,6 +5,8 @@ from preprocessing     import load_and_clean, encode_categoricals, split_and_sca
 from feature_selection import select_features
 from models            import train_all
 from evaluation        import run_evaluation
+from config             import TARGET
+from rolling_evaluation import rolling_origin_evaluation
 
 
 def main():
@@ -27,6 +29,9 @@ def main():
     run_evaluation(results, y_test)
 
     print("\nDone. All outputs saved.")
+
+    # 6. rolling-origin evaluation -> Table 3 (Reviewer 1, comment 2)
+    rolling_origin_evaluation(df, selected, TARGET)
 
 
 if __name__ == "__main__":
