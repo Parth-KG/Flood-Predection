@@ -19,6 +19,11 @@ STATIC_COLS      = ["area", "slope", "population", "year"]
 # train/test split
 TRAIN_SPLIT_QUANTILE = 0.80
 
+DNN_SEEDS          = [42, 43, 44, 45, 46]
+ROLLING_SPLITS     = 5
+ROLLING_TUNE_ITER  = 10
+FIGURE_DPI         = 300
+
 # model colours used in plots
 MODEL_COLORS = {
     "Linear Regression": "gray",
