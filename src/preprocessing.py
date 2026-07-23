@@ -12,16 +12,26 @@ def load_and_clean(path: str = DATA_PATH) -> pd.DataFrame:
     print(f"Dataset loaded: {df.shape[0]} rows, {df.shape[1]} columns")
 
     df.dropna(subset=[TARGET], inplace=True)
+    
+    sort_keys = [k for k in ("year", "date") if k in df.columns]
+    df = df.sort_values(sort_keys, kind="mergesort").reset_index(drop=True)
+    print(f"Sorted chronologically by {sort_keys}")
+    
     df.drop(columns=[c for c in DROP_COLS if c in df.columns], inplace=True)
     return df
 
 
 def encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
-    """Label-encode categorical columns in-place."""
-    le = LabelEncoder()
+    """Keep water-system and river codes as their original numeric identifiers."""
     for col in CATEGORICAL_COLS:
-        if col in df.columns:
-            df[col] = le.fit_transform(df[col].astype(str))
+        if col not in df.columns:
+            continue
+        numeric = pd.to_numeric(df[col], errors="coerce")
+        if numeric.isna().any():
+            print(f"  {col}: non-numeric codes present, label-encoding")
+            df[col] = LabelEncoder().fit_transform(df[col])
+        else:
+            df[col] = numeric
     return df
 
 
