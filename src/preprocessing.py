@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 from config import (
-    DATA_PATH, TARGET, CATEGORICAL_COLS, DROP_COLS, TRAIN_SPLIT_QUANTILE
+    DATA_PATH, TARGET, CATEGORICAL_COLS, DROP_COLS, TRAIN_SPLIT_QUANTILE,EXCLUDE_FROM_FEATURES
 )
 
 
@@ -51,7 +51,8 @@ def split_and_scale(df: pd.DataFrame):
     train_df = df[df["year"] < split_year].copy()
     test_df  = df[df["year"] >= split_year].copy()
 
-    feature_cols = [c for c in df.columns if c != TARGET]
+    feature_cols = [c for c in df.columns
+                    if c != TARGET and c not in EXCLUDE_FROM_FEATURES]
 
     X_train_raw = train_df[feature_cols]
     y_train     = train_df[TARGET].values

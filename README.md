@@ -1,188 +1,230 @@
-# 🌊 Flood Damage Prediction — Multi-Model ML Pipeline
+# Flood Damage Prediction — Kanto Region, Japan
 
-An end-to-end machine learning pipeline that predicts **population-normalized flood damage** from antecedent rainfall and catchment characteristics. Five models — from Linear Regression to a Deep Neural Network — are trained, tuned, and benchmarked against each other.
+Comparing five regression models on per-capita flood damage across 28 years of
+Japanese flood records (1993–2020), with time-aware validation throughout.
 
----
-
-## 📌 Overview
-
-Flood damage is modelled as `log10(damageObs / population)`, a normalized metric that accounts for exposure. The pipeline ingests a tabular dataset of historical flood events, applies feature selection using Random Forest importance and Mutual Information, then trains and compares five regression models with time-series-aware cross-validation.
-
-All outputs (plots, metrics CSV, model comparisons) are saved automatically on a single `python main.py` run.
+Accompanies the manuscript *"A Head-to-Head Study of Ensemble and Deep Learning
+Algorithms for Flood Damage Prediction in Japan"* (under revision, ICDPN 2026).
 
 ---
 
-## 🧠 Models Compared
+## Results
 
-| Model | Tuning Strategy |
-|---|---|
-| Linear Regression | None (baseline) |
-| Random Forest | RandomizedSearchCV + TimeSeriesSplit |
-| XGBoost | RandomizedSearchCV + TimeSeriesSplit |
-| SVR (RBF kernel) | RandomizedSearchCV + TimeSeriesSplit |
-| DNN (Keras) | EarlyStopping + ReduceLROnPlateau |
+Chronological holdout — trained on 1993–2012, tested on 2013–2020 (1174 events):
 
-All tree and kernel models are tuned over 30 random parameter combinations with 5-fold time-series cross-validation to prevent data leakage from temporal autocorrelation.
+| Model             |  RMSE           |  MAE            |  R²             |
+|-------------------|-----------------|-----------------|-----------------|
+| XGBoost           | **0.802**       | **0.632**       | **0.372**       |
+| Random Forest     | 0.806           | 0.633           | 0.365           |
+| Deep Neural Net   | 0.837 ± 0.002   | 0.655 ± 0.002   | 0.316 ± 0.003   |
+| SVR               | 0.863           | 0.684           | 0.273           |
+| Linear Regression | 0.924           | 0.734           | 0.168           |
+
+Rolling-origin validation — five expanding windows, mean ± std:
+
+| Model             |  RMSE           |  R²             |
+|-------------------|-----------------|-----------------|
+| Random Forest     | **0.676 ± 0.099** | **0.406 ± 0.059** |
+| XGBoost           | 0.678 ± 0.097   | 0.403 ± 0.057   |
+| Deep Neural Net   | 0.707 ± 0.099   | 0.349 ± 0.056   |
+| SVR               | 0.743 ± 0.087   | 0.281 ± 0.043   |
+| Linear Regression | 0.807 ± 0.092   | 0.151 ± 0.050   |
+
+The DNN row is averaged over five random seeds; the other models are
+deterministic single fits.
+
+**XGBoost and Random Forest are statistically indistinguishable.** The gap
+between them is 0.004 RMSE on the holdout and 0.002 the other way under
+rolling-origin, against a window-to-window standard deviation of 0.099. The
+ordering flips with the protocol, so neither should be claimed as the winner.
 
 ---
 
-## 📁 Project Structure
-
-```
-├── main.py               # Orchestrates the full pipeline
-├── config.py             # All constants: paths, column names, seeds, colours
-├── preprocessing.py      # Load, clean, encode, chronological split, MinMax scale
-├── feature_selection.py  # VIF check, RF importance, Mutual Information, heatmap
-├── models.py             # Training logic for all five models
-├── evaluation.py         # Metrics summary, plots, and CSV export
-└── data/
-    └── DB_input+res_ptn02d14_logDmgPop.csv   # Input dataset (not tracked)
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
+## Quick start
 
 ```bash
-pip install numpy pandas scikit-learn xgboost tensorflow statsmodels matplotlib seaborn
-```
+git clone https://github.com/Parth-KG/Flood-Prediction.git
+cd Flood-Prediction
 
-### Run the Full Pipeline
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-```bash
+cd src
 python main.py
 ```
 
-This runs all five stages in sequence and saves every output to the working directory.
+Runs end to end in roughly 30–60 minutes on a laptop. The dataset is included,
+so no download step is needed.
+
+To capture the full log (hyperparameters, feature selection, per-seed results):
+
+```bash
+python main.py 2>&1 | tee run_log.txt
+```
 
 ---
 
-## ⚙️ Pipeline Walkthrough
+## Repository layout
 
-### 1. Preprocessing (`preprocessing.py`)
-- Loads the CSV and drops rows with a missing target
-- Label-encodes categorical watershed/river codes (`wsysCd`, `rivCd`)
-- **Chronological train/test split** at the 80th percentile year — preserving temporal order, no shuffling
-- MinMax scales all features (scaler fit on train only, applied to test)
-
-### 2. Feature Selection (`feature_selection.py`)
-
-Three complementary techniques are applied:
-
-**VIF (Variance Inflation Factor)** — checks for multicollinearity among the 30 antecedent rainfall features (`0d` to `29d`).
-
-**Random Forest Importance** — features are ranked by impurity reduction; the cumulative top 95% are identified.
-
-**Mutual Information** — ranks features by non-linear statistical dependence with the target.
-
-The final feature set is the **union of the top 50% from RF and MI**, with static and categorical features always retained.
-
-Outputs saved:
-- `feature_importance_rf.png` — horizontal bar chart of top-20 features
-- `rainfall_correlation_heatmap.png` — Spearman correlation matrix of all rainfall lag features
-
-### 3. Model Training (`models.py`)
-
-Each model is trained on the selected feature set. Key hyperparameter search spaces:
-
-**Random Forest**
-```python
-n_estimators: [100, 200, 300, 500]
-max_depth:    [None, 10, 20, 30]
-max_features: ["sqrt", "log2", 0.5]
 ```
-
-**XGBoost**
-```python
-n_estimators:     [100–500]
-learning_rate:    [0.01–0.2]
-subsample:        [0.6–1.0]
-colsample_bytree: [0.6–1.0]
-reg_alpha/lambda: L1 + L2 regularization
+├── src/
+│   ├── config.py              paths, column groups, seeds, split ratio
+│   ├── preprocessing.py       load, chronological sort, split, scale
+│   ├── feature_selection.py   VIF, RF importance, mutual information, consensus
+│   ├── models.py              the five models + hyperparameter search
+│   ├── evaluation.py          metrics table and figures
+│   ├── rolling_evaluation.py  expanding-window validation
+│   └── main.py                pipeline entry point
+├── dataset/
+│   ├── data/                  source CSVs (Zenodo, CC-BY 4.0)
+│   ├── data_structures.xlsx   variable dictionary
+│   └── readme.docx            dataset documentation
+├── assets/                    figures and results used in the paper
+├── requirements.txt
+└── README.md
 ```
-
-**SVR**
-```python
-C:       [0.1–500]
-gamma:   ["scale", "auto", 0.001–0.1]
-epsilon: [0.01–0.5]
-kernel:  rbf
-```
-
-**DNN Architecture**
-```
-Dense(128, ReLU) → BatchNorm → Dropout(0.3)
-Dense(64,  ReLU) → BatchNorm → Dropout(0.3)
-Dense(32,  ReLU) → BatchNorm → Dropout(0.2)
-Dense(1,   Linear)
-```
-Trained with Adam (lr=0.001), EarlyStopping (patience=20), ReduceLROnPlateau (factor=0.5).
-
-Output saved: `dnn_training_history.png`
-
-### 4. Evaluation (`evaluation.py`)
-
-All models are evaluated on the held-out test set using RMSE, MAE, and R².
-
-Outputs saved:
-- `model_comparison_summary.csv` — full metrics table
-- `predicted_vs_observed.png` — scatter plots for all five models
-- `residual_plots.png` — residual vs. predicted plots
-- `model_comparison_metrics.png` — side-by-side bar charts for RMSE, MAE, R²
 
 ---
 
-## 📊 Output Files Summary
+## Data
 
-| File | Description |
+Sourced from the Zenodo repository accompanying Wakai et al., *"Historical
+precipitation and flood damage in Japan: functional data analysis and evaluation
+of models"* — <https://doi.org/10.5281/zenodo.14015790>, CC-BY 4.0.
+
+This analysis uses `DB_input+res_ptn02d14_logDmgPop.csv`:
+
+| | |
 |---|---|
-| `model_comparison_summary.csv` | RMSE / MAE / R² for all models |
-| `predicted_vs_observed.png` | Scatter plots (predicted vs. observed) |
-| `residual_plots.png` | Residual diagnostics |
-| `model_comparison_metrics.png` | Metric bar chart comparison |
-| `feature_importance_rf.png` | Top-20 feature importances |
-| `rainfall_correlation_heatmap.png` | Spearman correlation of rainfall lags |
-| `dnn_training_history.png` | DNN loss and MAE training curves |
+| Events | 5704 |
+| Water systems | 75 |
+| Rivers | 962 |
+| Period | 1993–2020 |
+| Missing values | none |
+| Duplicate rows | none |
+
+**Geographic coverage is the Kanto region, not all of Japan.** The water system
+codes resolve to three prefectures — Ibaraki (08), Chiba (12), Kanagawa (14) —
+plus seven nationally managed Class-A river systems. The source study describes
+its scope as the Kanto and Koshin regions. Results should not be assumed to
+transfer to other parts of Japan.
+
+**Target variable:** `log₁₀(damageObs / population)` — observed monetary flood
+damage per resident, log-transformed. Per-capita rather than absolute damage,
+so that small basins with high per-resident losses remain visible.
+
+Three columns are dropped before modelling: `log₁₀(dmgPred/pop)` (predictions
+from the source study's own model), `damageObs` (the target's numerator — a
+direct leak), and `date` (used only for chronological sorting).
 
 ---
 
-## ⚙️ Configuration (`config.py`)
+## Methodology notes
 
-All tunable constants live in one place:
+Three choices are worth knowing about before reading the code.
 
-```python
-DATA_PATH            = "DB_input+res_ptn02d14_logDmgPop.csv"
-TARGET               = "log10(dmgObs/pop)"
-RAINFALL_COLS        = ["29d", "28d", ..., "0d"]   # 30 antecedent rainfall lags
-STATIC_COLS          = ["area", "slope", "population", "year"]
-CATEGORICAL_COLS     = ["wsysCd", "rivCd"]
-TRAIN_SPLIT_QUANTILE = 0.80
-RANDOM_SEED          = 42
+**Chronological splitting.** The train/test boundary is the 80th percentile of
+the year distribution, which falls at **2013** — 4530 training events (1993–2012)
+against 1174 test events (2013–2020), a 79.4 / 20.6 split. Rows are sorted by
+date at load time, because both `TimeSeriesSplit` and Keras' `validation_split`
+slice by row position and are only meaningful on ordered data.
+
+**`year` is excluded as a predictor.** It is retained in the dataframe for
+splitting and window labelling, but never reaches a model. Under a chronological
+split every test-set year lies outside the training range: trees cannot
+extrapolate past their final split point, and scaled year values push SVR and
+DNN inputs beyond the domain they were fitted on. Removing it is the single
+largest contributor to the DNN's performance.
+
+**Consensus feature selection.** A feature is retained only if it ranks in the
+top half by *both* Random Forest importance and mutual information — 9 features
+qualify. Basin characteristics and river codes are always kept, giving 11:
+
+```
+2d, 3d, 11d, 17d, 22d, 27d, area, population, slope, wsysCd, rivCd
+```
+
+The two measures disagree substantially — RF ranks population, area, slope while
+mutual information ranks population, slope, area — which is what makes requiring
+agreement more informative than either ranking alone.
+
+Scaling (`MinMaxScaler`) is fitted on training rows only, and refitted inside
+each rolling-origin window. Hyperparameters for Random Forest, XGBoost and SVR
+come from a 30-iteration `RandomizedSearchCV` using five-fold `TimeSeriesSplit`.
+
+---
+
+## Outputs
+
+Running `main.py` writes to the working directory:
+
+| File | Contents |
+|---|---|
+| `model_comparison_summary.csv` | metrics for all five models |
+| `results_rolling_origin.csv` | rolling-origin means and standard deviations |
+| `feature_importance_rf.png` | Random Forest feature importances |
+| `rainfall_correlation_heatmap.png` | Spearman correlation, antecedent rainfall |
+| `predicted_vs_observed.png` | scatter plots, all five models |
+| `residual_plots.png` | residuals, all five models |
+| `model_comparison_metrics.png` | metric bar chart |
+| `dnn_training_history.png` | DNN loss and MAE curves |
+
+All figures render at 300 dpi. Copies of the versions used in the manuscript are
+in `assets/`.
+
+---
+
+## Reproducibility
+
+Seeded at 42 throughout (`config.RANDOM_SEED`), with the DNN additionally run
+across seeds 42–46 and reported as mean ± standard deviation.
+
+Two details matter for exact reproduction. Feature selection returns a `sorted()`
+list rather than an unordered set, because XGBoost's `colsample_bytree` samples
+column *indices* — a different column order gives different results from the same
+seed. And estimators run with `n_jobs=1` inside the parallel search, since nesting
+XGBoost's threads under `RandomizedSearchCV(n_jobs=-1)` introduces run-to-run
+variation.
+
+---
+
+## Citation
+
+If you use this code, please cite both the software and the underlying dataset:
+
+```bibtex
+@software{goswami_flood_prediction,
+  author = {Goswami, Parth Krishan and Sen, Aarushi and
+            Trivedi, Soahum and Arora, Jyoti},
+  title  = {Flood Damage Prediction for the Kanto Region, Japan},
+  year   = {2026},
+  url    = {https://github.com/Parth-KG/Flood-Prediction}
+}
+
+@dataset{wakai_2025,
+  author    = {Wakai, A.},
+  title     = {Historical precipitation and flood damage in Japan:
+               functional data analysis and evaluation of models},
+  year      = {2025},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.14015790}
+}
 ```
 
 ---
 
-## 💡 Design Decisions
+## License
 
-- **Chronological split over random split** — flood events are temporally correlated; random shuffling would leak future data into training.
-- **TimeSeriesSplit for CV** — same reasoning applied during hyperparameter search.
-- **Log-transformed target** — `log10(damage/population)` compresses the heavy-tailed damage distribution and normalizes for catchment size.
-- **Union of RF + MI for feature selection** — neither method alone captures both linear and non-linear dependencies; the union is a robust compromise.
+Code is released under the MIT License (see `LICENSE`).
 
----
-
-## 🗺️ Possible Extensions
-
-- [ ] SHAP values for model interpretability
-- [ ] Stacking / ensemble of top-performing models
-- [ ] Spatial cross-validation (leave-one-catchment-out)
-- [ ] Precipitation forecasts as input (operational forecasting mode)
-- [ ] Streamlit dashboard for interactive prediction
+The dataset in `dataset/` is redistributed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and remains the work
+of Wakai et al. (2025); attribution as above.
 
 ---
 
-## 📄 License
+## Authors
 
-MIT License — free to use and adapt with attribution.
+Parth Krishan Goswami, Aarushi Sen, Soahum Trivedi, Jyoti Arora
+Maharaja Surajmal Institute of Technology, GGSIPU, New Delhi, India

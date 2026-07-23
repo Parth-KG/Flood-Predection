@@ -41,9 +41,6 @@ def rf_feature_importance(
         .sort_values(ascending=False)
     )
 
-    cumulative   = importances.cumsum()
-    top_features = importances[cumulative <= 0.95].index.tolist()
-    print(f"\nTop features by RF importance (95% threshold): {len(top_features)}")
     print(importances.head(20))
 
     # plot
@@ -91,10 +88,16 @@ def select_features(
     importances = rf_feature_importance(X_train_s[feature_cols], y_train, feature_cols)
     mi_series   = mutual_info_scores(X_train_s[feature_cols], y_train, feature_cols)
 
-    # union of top-50% from RF and MI
+    # consensus selection: top-half by BOTH RF importance and mutual information
     rf_top   = set(importances.head(len(importances) // 2).index)
     mi_top   = set(mi_series.head(len(mi_series) // 2).index)
-    selected = sorted(rf_top.union(mi_top))
+    selected = sorted(rf_top.intersection(mi_top))
+    print(f"  RF top-half: {len(rf_top)} | MI top-half: {len(mi_top)} "
+          f"| consensus: {len(selected)}")
+
+    if len(selected) < 5:
+        selected = sorted(rf_top.union(mi_top))
+        print(f"  consensus too small, falling back to union: {len(selected)}")
 
     # always keep static and categorical features
     for col in STATIC_COLS + CATEGORICAL_COLS:

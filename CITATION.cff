@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: Flood Damage Prediction for the Kanto Region, Japan
+message: >-
+  If you use this software, please cite it and the underlying
+  dataset (Wakai 2025, doi:10.5281/zenodo.14015790).
+type: software
+authors:
+  - given-names: Parth Krishan
+    family-names: Goswami
+    affiliation: Maharaja Surajmal Institute of Technology, GGSIPU
+  - given-names: Aarushi
+    family-names: Sen
+    affiliation: Maharaja Surajmal Institute of Technology, GGSIPU
+  - given-names: Soahum
+    family-names: Trivedi
+    affiliation: Maharaja Surajmal Institute of Technology, GGSIPU
+  - given-names: Jyoti
+    family-names: Arora
+    affiliation: Maharaja Surajmal Institute of Technology, GGSIPU
+repository-code: https://github.com/Parth-KG/Flood-Prediction
+abstract: >-
+  Comparison of five regression models - Random Forest, XGBoost, SVR,
+  a deep neural network and linear regression - for predicting per-capita
+  flood damage across 75 water systems in the Kanto region of Japan,
+  1993-2020, using chronological and rolling-origin validation.
+keywords:
+  - flood damage prediction
+  - machine learning
+  - XGBoost
+  - random forest
+  - time series validation
+  - Japan
+license: MIT
+version: 1.0.0
+date-released: 2026-07-23
