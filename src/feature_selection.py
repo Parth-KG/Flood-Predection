@@ -52,7 +52,7 @@ def rf_feature_importance(
     ax.set_title("Feature Importances (Random Forest)")
     ax.set_xlabel("Importance")
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
+    plt.savefig(save_path, dpi=300)
     plt.close()
 
     return importances
@@ -112,7 +112,7 @@ def select_features(
     )
     ax.set_title("Spearman Correlation - Antecedent Rainfall Features")
     plt.tight_layout()
-    plt.savefig("rainfall_correlation_heatmap.png", dpi=150)
+    plt.savefig("rainfall_correlation_heatmap.png", dpi=300)
     plt.close()
 
     X_train = X_train_s[selected].values
