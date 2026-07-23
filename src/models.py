@@ -54,7 +54,7 @@ def train_random_forest(X_train, y_train, X_test, y_test) -> dict:
         "max_features":      ["sqrt", "log2", 0.5],
     }
     search = RandomizedSearchCV(
-        RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=-1),
+        RandomForestRegressor(random_state=RANDOM_SEED, n_jobs=1),
         param_distributions=param_dist,
         n_iter=30, cv=_tscv(),
         scoring="neg_root_mean_squared_error",
@@ -81,7 +81,7 @@ def train_xgboost(X_train, y_train, X_test, y_test) -> dict:
         "min_child_weight": [1, 3, 5],
     }
     search = RandomizedSearchCV(
-        xgb.XGBRegressor(objective="reg:squarederror", random_state=RANDOM_SEED, verbosity=0),
+        xgb.XGBRegressor(objective="reg:squarederror", random_state=RANDOM_SEED, verbosity=0, n_jobs = 1),
         param_distributions=param_dist,
         n_iter=30, cv=_tscv(),
         scoring="neg_root_mean_squared_error",
@@ -121,8 +121,12 @@ def train_svr(X_train, y_train, X_test, y_test) -> dict:
 def train_dnn(
     X_train, y_train, X_test, y_test,
     save_history_plot: str = "dnn_training_history.png",
+    seed: int = RANDOM_SEED,
+    verbose: int = 1,
 ) -> dict:
-    print("\nTraining: DNN...")
+    print(f"\nTraining: DNN (seed={seed})...")
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
     n_features = X_train.shape[1]
 
     model = Sequential([
@@ -138,7 +142,8 @@ def train_dnn(
         Dense(1, activation="linear"),
     ])
     model.compile(optimizer=Adam(learning_rate=0.001), loss="mse", metrics=["mae"])
-    model.summary()
+     if verbose:
+        model.summary()
 
     history = model.fit(
         X_train, y_train,
@@ -149,7 +154,7 @@ def train_dnn(
             EarlyStopping(monitor="val_loss", patience=20, restore_best_weights=True),
             ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=10, min_lr=1e-6),
         ],
-        verbose=1,
+        verbose=verbose,
     )
 
     # training history plot
@@ -164,7 +169,8 @@ def train_dnn(
 
     plt.suptitle("DNN Training History")
     plt.tight_layout()
-    plt.savefig(save_history_plot, dpi=150)
+    if save_history_plot:
+        plt.savefig(save_history_plot, dpi=300)
     plt.close()
 
     preds = model.predict(X_test, verbose=0).flatten()
