@@ -177,8 +177,39 @@ def train_dnn(
     res   = _metrics(y_test, preds)
     print(f"  RMSE: {res['rmse']:.4f} | R2: {res['r2']:.4f}")
     return res
+# ---- multi-seed evaluation --------------------------------------------------
 
+def train_dnn_multiseed(X_train, y_train, X_test, y_test, seeds=None) -> dict:
+    """Run the DNN across seeds; BatchNorm + dropout make single runs unstable."""
+    seeds = list(seeds or DNN_SEEDS)
+    runs = []
+    for i, seed in enumerate(seeds):
+        runs.append(train_dnn(
+            X_train, y_train, X_test, y_test,
+            save_history_plot="dnn_training_history.png" if i == 0 else None,
+            seed=seed, verbose=0,
+        ))
 
+    rmses = np.array([r["rmse"] for r in runs])
+    maes  = np.array([r["mae"]  for r in runs])
+    r2s   = np.array([r["r2"]   for r in runs])
+    median_run = runs[int(np.argsort(rmses)[len(rmses) // 2])]
+
+    print(f"\n  DNN over {len(seeds)} seeds:")
+    print(f"    RMSE {rmses.mean():.4f} +/- {rmses.std(ddof=1):.4f}")
+    print(f"    MAE  {maes.mean():.4f} +/- {maes.std(ddof=1):.4f}")
+    print(f"    R2   {r2s.mean():.4f} +/- {r2s.std(ddof=1):.4f}")
+
+    return {
+        "preds":    median_run["preds"],
+        "rmse":     float(rmses.mean()),
+        "mae":      float(maes.mean()),
+        "r2":       float(r2s.mean()),
+        "rmse_std": float(rmses.std(ddof=1)),
+        "mae_std":  float(maes.std(ddof=1)),
+        "r2_std":   float(r2s.std(ddof=1)),
+        "n_seeds":  len(seeds),
+    }
 # ---- main entry point -------------------------------------------------------
 
 def train_all(X_train, y_train, X_test, y_test) -> dict:
@@ -191,5 +222,5 @@ def train_all(X_train, y_train, X_test, y_test) -> dict:
         "Random Forest":     train_random_forest(X_train, y_train, X_test, y_test),
         "XGBoost":           train_xgboost(X_train, y_train, X_test, y_test),
         "SVR":               train_svr(X_train, y_train, X_test, y_test),
-        "DNN":               train_dnn(X_train, y_train, X_test, y_test),
+        "DNN":               train_dnn_multiseed(X_train, y_train, X_test, y_test),
     }
