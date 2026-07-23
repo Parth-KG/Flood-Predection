@@ -94,7 +94,7 @@ def select_features(
     # union of top-50% from RF and MI
     rf_top   = set(importances.head(len(importances) // 2).index)
     mi_top   = set(mi_series.head(len(mi_series) // 2).index)
-    selected = list(rf_top.union(mi_top))
+    selected = sorted(rf_top.union(mi_top))
 
     # always keep static and categorical features
     for col in STATIC_COLS + CATEGORICAL_COLS:
